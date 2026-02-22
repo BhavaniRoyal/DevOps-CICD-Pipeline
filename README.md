@@ -1,3 +1,4 @@
+![ci-cd](https://github.com/BhavaniRoyal/DevOps-CICD-Pipeline/actions/workflows/ci-cd.yml/badge.svg)
 # Enterprise CI/CD Pipeline (iOS + Microservices) — Portfolio Demo
 
 This repository demonstrates a **production-style CI/CD pipeline** that a real team could use to ship:
