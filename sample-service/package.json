@@ -1,0 +1,12 @@
+{
+  "name": "sample-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tiny sample service for demonstrating CI/CD (health endpoint + tests).",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test",
+    "lint": "node scripts/lint.js"
+  }
+}
