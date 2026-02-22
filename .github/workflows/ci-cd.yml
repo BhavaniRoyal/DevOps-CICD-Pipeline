@@ -30,7 +30,7 @@ jobs:
 
       - name: Install deps
         working-directory: ${{ env.SERVICE_DIR }}
-        run: npm ci
+        run: npm install
 
       - name: Lint
         working-directory: ${{ env.SERVICE_DIR }}
