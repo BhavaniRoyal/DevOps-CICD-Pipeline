@@ -141,16 +141,21 @@ jobs:
         run: |
           kubectl -n production rollout status deployment/sample-service --timeout=180s
 
-      - name: Notify Slack (optional)
-        if: ${{ always() && secrets.SLACK_WEBHOOK_URL != '' }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        run: |
-          STATUS="${{ job.status }}"
-          PAYLOAD=$(cat <<EOF
-          {
-            "text": "Deploy to *production* for repo *${{ github.repository }}* finished with status: *$STATUS*\nCommit: ${{ github.sha }}"
-          }
-          EOF
-          )
-          curl -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK_URL"
+    - name: Notify Slack (optional)
+  if: always()
+  env:
+    SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+  run: |
+    if [ -z "$SLACK_WEBHOOK_URL" ]; then
+      echo "No Slack webhook set. Skipping notification."
+      exit 0
+    fi
+
+    STATUS="${{ job.status }}"
+    PAYLOAD=$(cat <<EOF
+    {
+      "text": "Deploy to *production* for repo *${{ github.repository }}* finished with status: *$STATUS*"
+    }
+    EOF
+    )
+    curl -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK_URL"
