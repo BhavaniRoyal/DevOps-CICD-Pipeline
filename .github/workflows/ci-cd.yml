@@ -61,7 +61,7 @@ jobs:
         with:
           context: ./sample-service
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/sample-service:latest
+         tags: ghcr.io/bhavaniroyal/sample-service:latest
 
   deploy_staging:
     needs: build_and_push
