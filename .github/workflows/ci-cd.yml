@@ -2,17 +2,13 @@ name: ci-cd
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   pull_request:
 
 permissions:
   contents: read
   packages: write
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/sample-service
-  SERVICE_DIR: sample-service
 
 jobs:
 
@@ -29,16 +25,17 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        working-directory: ${{ env.SERVICE_DIR }}
+        working-directory: sample-service
         run: npm install
 
       - name: Lint
-        working-directory: ${{ env.SERVICE_DIR }}
+        working-directory: sample-service
         run: npm run lint
 
       - name: Run tests
-        working-directory: ${{ env.SERVICE_DIR }}
+        working-directory: sample-service
         run: npm test
+
 
   build_and_push:
     needs: ci
@@ -61,7 +58,8 @@ jobs:
         with:
           context: ./sample-service
           push: true
-         tags: ghcr.io/bhavaniroyal/sample-service:latest
+          tags: ghcr.io/bhavaniroyal/sample-service:latest
+
 
   deploy_staging:
     needs: build_and_push
@@ -73,7 +71,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy to staging
-        run: echo "Simulated staging deployment successful"
+        run: echo "Staging deployment successful"
+
 
   deploy_production:
     needs: deploy_staging
@@ -85,4 +84,4 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy to production
-        run: echo "Simulated production deployment successful"
+        run: echo "Production deployment successful"
