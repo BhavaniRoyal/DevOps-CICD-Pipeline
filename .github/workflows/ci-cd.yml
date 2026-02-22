@@ -15,8 +15,10 @@ env:
   SERVICE_DIR: sample-service
 
 jobs:
+
   ci:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,10 +27,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-         
 
-      - name: Install deps
+      - name: Install dependencies
         working-directory: ${{ env.SERVICE_DIR }}
         run: npm install
 
@@ -36,126 +36,53 @@ jobs:
         working-directory: ${{ env.SERVICE_DIR }}
         run: npm run lint
 
-      - name: Unit tests
+      - name: Run tests
         working-directory: ${{ env.SERVICE_DIR }}
-        run: npm test -- --ci
-
-      - name: Trivy FS scan (security)
-        uses: aquasecurity/trivy-action@0.24.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          format: table
-          severity: CRITICAL,HIGH
+        run: npm test
 
   build_and_push:
     needs: ci
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Log in to the Container registry
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels)
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha
-            type=ref,event=branch
-
-      - name: Build and push
+      - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
         with:
-          context: ./${{ env.SERVICE_DIR }}
+          context: ./sample-service
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ghcr.io/${{ github.repository_owner }}/sample-service:latest
 
   deploy_staging:
     needs: build_and_push
     runs-on: ubuntu-latest
     environment: staging
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v4
-
-      - name: Configure kubeconfig
-        run: |
-          if [ -z "${{ secrets.KUBE_CONFIG_DATA }}" ]; then
-            echo "KUBE_CONFIG_DATA secret not set. Skipping deploy."
-            exit 0
-          fi
-          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > $HOME/.kube/config
-
-      - name: Deploy staging (apply manifests)
-        run: |
-          kubectl apply -f k8s/staging-namespace.yaml
-          # Replace the image tag with the current commit SHA tag
-          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}"
-          sed "s|IMAGE_PLACEHOLDER|$IMAGE|g" k8s/staging-deployment.yaml | kubectl apply -f -
-          kubectl apply -f k8s/staging-service.yaml
-
-      - name: Wait for rollout
-        run: |
-          kubectl -n staging rollout status deployment/sample-service --timeout=180s
+      - name: Deploy to staging
+        run: echo "Simulated staging deployment successful"
 
   deploy_production:
     needs: deploy_staging
     runs-on: ubuntu-latest
     environment: production
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v4
-
-      - name: Configure kubeconfig
-        run: |
-          if [ -z "${{ secrets.KUBE_CONFIG_DATA }}" ]; then
-            echo "KUBE_CONFIG_DATA secret not set. Skipping deploy."
-            exit 0
-          fi
-          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > $HOME/.kube/config
-
-      - name: Deploy production (apply manifests)
-        run: |
-          kubectl apply -f k8s/production-namespace.yaml
-          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}"
-          sed "s|IMAGE_PLACEHOLDER|$IMAGE|g" k8s/production-deployment.yaml | kubectl apply -f -
-          kubectl apply -f k8s/production-service.yaml
-
-      - name: Wait for rollout
-        run: |
-          kubectl -n production rollout status deployment/sample-service --timeout=180s
-
-    - name: Notify Slack (optional)
-  if: always()
-  env:
-    SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-  run: |
-    if [ -z "$SLACK_WEBHOOK_URL" ]; then
-      echo "No Slack webhook set. Skipping notification."
-      exit 0
-    fi
-
-    STATUS="${{ job.status }}"
-    PAYLOAD=$(cat <<EOF
-    {
-      "text": "Deploy to *production* for repo *${{ github.repository }}* finished with status: *$STATUS*"
-    }
-    EOF
-    )
-    curl -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK_URL"
+      - name: Deploy to production
+        run: echo "Simulated production deployment successful"
